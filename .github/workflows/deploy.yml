@@ -1,0 +1,60 @@
+name: Deploy DB Migrations
+
+on:
+  push:
+    branches: [dev, qa, main]
+
+jobs:
+  deploy-dev:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flyway migrate DEV
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/flyway/project" \
+            flyway/flyway:latest \
+            -configFiles=/flyway/project/flyway.conf \
+            -url="${{ secrets.DEV_DB_URL }}" \
+            -user="${{ secrets.DEV_DB_USER }}" \
+            -password="${{ secrets.DEV_DB_PASSWORD }}" \
+            migrate
+
+  deploy-qa:
+    if: github.ref == 'refs/heads/qa'
+    runs-on: ubuntu-latest
+    environment: qa
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flyway migrate QA
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/flyway/project" \
+            flyway/flyway:latest \
+            -configFiles=/flyway/project/flyway.conf \
+            -url="${{ secrets.QA_DB_URL }}" \
+            -user="${{ secrets.QA_DB_USER }}" \
+            -password="${{ secrets.QA_DB_PASSWORD }}" \
+            migrate
+
+  deploy-prod:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flyway migrate PROD
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/flyway/project" \
+            flyway/flyway:latest \
+            -configFiles=/flyway/project/flyway.conf \
+            -url="${{ secrets.PROD_DB_URL }}" \
+            -user="${{ secrets.PROD_DB_USER }}" \
+            -password="${{ secrets.PROD_DB_PASSWORD }}" \
+            migrate

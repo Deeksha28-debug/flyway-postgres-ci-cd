@@ -1,0 +1,35 @@
+name: PR Checks (Migration Naming)
+
+on:
+  pull_request:
+    branches: [dev, qa, main]
+
+jobs:
+  migration-naming-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check migration filenames and duplicates
+        shell: bash
+        run: |
+          set -e
+
+          echo "Checking that migrations follow Flyway naming: V<version>__<desc>.sql"
+          bad=$(find migrations -type f -name "*.sql" | sed 's|.*/||' | grep -vE '^V[0-9]+__.+\.sql$' || true)
+          if [ -n "$bad" ]; then
+            echo "❌ Invalid migration filenames:"
+            echo "$bad"
+            exit 1
+          fi
+
+          echo "Checking duplicate version numbers"
+          versions=$(find migrations -type f -name "*.sql" | sed 's|.*/||' | sed -E 's/^V([0-9]+)__.*/\1/' | sort)
+          dups=$(echo "$versions" | uniq -d || true)
+          if [ -n "$dups" ]; then
+            echo "❌ Duplicate migration versions found:"
+            echo "$dups"
+            exit 1
+          fi
+
+          echo "✅ PR checks passed"
